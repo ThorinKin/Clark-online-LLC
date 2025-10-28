@@ -1,0 +1,78 @@
+# ===== 通用 OS / 编辑器噪音 =====
+.DS_Store
+Thumbs.db
+desktop.ini
+*.log
+*.tmp
+*.sw?
+*.orig
+*.patch
+
+# IDE
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+!.vscode/launch.json
+!.vscode/tasks.json
+
+# 证书 / 私钥
+*.pem
+*.key
+*.pfx
+*.p12
+*.cer
+*.crt
+*.snk
+
+# 环境变量文件
+**/.env
+**/.env.*
+!**/.env.example
+
+# ===== Frontend: Vite + React (Login_react) =====
+Login_react/node_modules/
+Login_react/dist/
+Login_react/.vite/
+Login_react/.cache/
+Login_react/coverage/
+Login_react/.eslintcache
+Login_react/*.tsbuildinfo
+Login_react/npm-debug.log*
+Login_react/yarn-error.log*
+Login_react/pnpm-debug.log*
+
+# ===== Backend: .NET 8 (Server) =====
+# 构建产物
+Server/bin/
+Server/obj/
+
+# Visual Studio 临时文件
+.vs/
+Server/.vs/
+
+# 用户/机器绑定的工程文件
+Server/**/*.user
+Server/**/*.suo
+Server/**/*.userosscache
+Server/**/*.sln.docstates
+
+# 发布配置
+Server/Properties/PublishProfiles/
+Server/**/*.pubxml
+Server/**/*.pubxml.user
+
+# 测试&日志&本地数据
+Server/TestResults/
+Server/Logs/
+Server/**/*.db
+Server/**/*.sqlite
+
+# ===== Docker / 本地卷=====
+docker-compose.override.yml
+docker-compose.*.local.yml
+**/data/**
+**/tmp/**
+
+# ===== 其他 =====
+coverage/

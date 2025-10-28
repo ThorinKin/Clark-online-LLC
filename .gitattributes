@@ -1,0 +1,13 @@
+# 让 Git 自动规范文本文件换行符
+* text=auto
+
+# 常见脚本显式指定行尾
+*.sh  text eol=lf
+*.bash text eol=lf
+*.ps1 text eol=crlf
+*.bat text eol=crlf
+
+# 代码语法高亮/更友好的 diff
+*.cs  diff=csharp
+*.tsx diff=cpp
+*.ts  diff=cpp

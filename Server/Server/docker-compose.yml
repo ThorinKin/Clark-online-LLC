@@ -1,0 +1,53 @@
+# Server/docker-compose.yml
+version: "3.8"
+
+services:
+  db:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: sss_dev
+    ports:
+      - "3307:3306"                # 本机3307 -> 容器3306，避开本地已有MySQL
+    volumes:
+      - db-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - "8080:8080"
+
+  api:
+    image: mcr.microsoft.com/dotnet/sdk:8.0
+    working_dir: /src                 # 容器内工作目录=挂载点
+    volumes:
+      - ./:/src                       # 直接挂载含 Server.csproj 的目录
+      - nuget-cache:/root/.nuget/packages
+    ports:
+      - "9292:9292"                   # 对外端口
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      URLS: http://0.0.0.0:9292
+      ASPNETCORE_URLS: http://0.0.0.0:9292
+      DOTNET_USE_POLLING_FILE_WATCHER: "true"
+      ConnectionStrings__ServerDB: "Server=db;Port=3306;Database=sss_dev;User=root;Password=rootpassword;Charset=utf8mb4;"
+      OpenAI__ApiKey: ${OPENAI_API_KEY}
+    depends_on:
+      db:
+        condition: service_healthy
+    command: >
+      bash -lc "dotnet restore &&
+                dotnet tool restore || true &&
+                dotnet watch run --no-restore --no-launch-profile --urls http://0.0.0.0:9292"
+      # 如果当前目录不是唯一项目，可显式指定
+      # dotnet watch run --no-restore --project Server.csproj
+
+volumes:
+  db-data:
+  nuget-cache:
