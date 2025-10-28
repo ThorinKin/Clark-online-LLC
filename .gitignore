@@ -72,6 +72,8 @@ Server/**/*.sqlite
 docker-compose.override.yml
 docker-compose.*.local.yml
 **/data/**
+!Login_react/src/data/
+!Login_react/src/data/*
 **/tmp/**
 
 # ===== 其他 =====

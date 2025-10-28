@@ -1,16 +1,98 @@
 //Login_react/src/pages/CartPage.jsx
-import React from 'react';
+//import React from 'react';
+import React, { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Helmet } from 'react-helmet';
-import { Trash2, Plus, Minus, ShoppingBag, ArrowRight } from 'lucide-react';
+//import { Trash2, Plus, Minus, ShoppingBag, ArrowRight } from 'lucide-react';
+import { Trash2, Plus, Minus, ShoppingBag, ArrowRight, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useCart } from '@/contexts/CartContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { toast } from '@/components/ui/use-toast';
+import { apiFetch } from '@/lib/api';
 
 const CartPage = () => {
-  const { cartItems, removeFromCart, updateQuantity, getTotalPrice, getTotalItems } = useCart();
+    const { cartItems, removeFromCart, updateQuantity, getTotalPrice, getTotalItems } = useCart();
+    const { userId, isAuthenticated } = useAuth();
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
-  if (cartItems.length === 0) {
+    const lineItems = useMemo(() => (
+        cartItems.map(item => ({
+            productId: item.id,
+            quantity: item.quantity,
+        }))
+    ), [cartItems]);
+
+    const handleCheckout = async () => {
+        if (!isAuthenticated || !userId) {
+            toast({
+                title: 'Log in required',
+                description: 'Please sign in before proceeding to checkout.',
+                variant: 'destructive',
+            });
+            return;
+        }
+
+        if (lineItems.length === 0) {
+            toast({
+                title: 'Your cart is empty',
+                description: 'Add a package before checking out.',
+            });
+            return;
+        }
+
+        setIsSubmitting(true);
+
+        try {
+            const origin = window.location.origin;
+            const payload = {
+                items: lineItems,
+                successUrl: `${origin}/payment-success`,
+                cancelUrl: `${origin}/payment-failed`,
+            };
+
+            const session = await apiFetch('/api/payments/hosted-session', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-User-Id': userId,
+                },
+                body: JSON.stringify(payload),
+            });
+
+            if (!session?.token || !session?.paymentUrl || !session?.invoiceNumber) {
+                throw new Error('Missing payment session information.');
+            }
+
+            sessionStorage.setItem('ttxs-last-invoice', session.invoiceNumber);
+            sessionStorage.setItem('ttxs-last-amount', String(session.amount ?? ''));
+            sessionStorage.setItem('ttxs-last-credits', String(session.credits ?? ''));
+
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = session.paymentUrl;
+
+            const tokenField = document.createElement('input');
+            tokenField.type = 'hidden';
+            tokenField.name = 'token';
+            tokenField.value = session.token;
+            form.appendChild(tokenField);
+
+            document.body.appendChild(form);
+            form.submit();
+            document.body.removeChild(form);
+        } catch (error) {
+            console.error('Failed to create payment session', error);
+            toast({
+                title: 'Checkout unavailable',
+                description: error?.message || 'Unable to start Authorize.net checkout. Please try again later.',
+                variant: 'destructive',
+            });
+            setIsSubmitting(false);
+        }
+    };
+    if (cartItems.length === 0) {
     return (
       <div className="min-h-screen py-20 px-4 sm:px-6 lg:px-8 bg-background text-foreground">
         <Helmet>
@@ -40,7 +122,7 @@ const CartPage = () => {
         </div>
       </div>
     );
-  }
+    }
 
   return (
     <div className="min-h-screen py-20 px-4 sm:px-6 lg:px-8 bg-background text-foreground">
@@ -151,13 +233,23 @@ const CartPage = () => {
                 </div>
               </div>
             </div>
-
-            <Link to="/checkout" className="block">
-              <Button className="w-full bg-primary text-primary-foreground hover:bg-primary/90 font-medium py-3 px-6 rounded-lg transition-all duration-300">
-                Proceed to Checkout
-                <ArrowRight className="ml-2 w-5 h-5" />
-              </Button>
-            </Link>
+            <Button
+                onClick={handleCheckout}
+                disabled={isSubmitting}
+                className="w-full bg-primary text-primary-foreground hover:bg-primary/90 font-medium py-3 px-6 rounded-lg transition-all duration-300"
+            >
+                {isSubmitting ? (
+                    <span className="flex items-center justify-center">
+                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                        Redirecting to checkout...
+                    </span>
+                ) : (
+                    <span className="flex items-center justify-center">
+                        Checkout with Authorize.net
+                        <ArrowRight className="ml-2 w-5 h-5" />
+                    </span>
+                )}
+            </Button>
 
             <Link to="/products" className="block mt-4">
               <Button variant="outline" className="w-full">

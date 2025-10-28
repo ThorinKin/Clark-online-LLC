@@ -3,10 +3,13 @@ using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.EntityFrameworkCore;
 using Server.Models.DataBase;
 using Server.Services;
+using Server.Payments;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddScoped<ICreditService, CreditService>(); // 扣减积分服务
+builder.Services.Configure<AuthorizeNetOptions>(builder.Configuration.GetSection("AuthorizeNet"));
+builder.Services.AddSingleton<IAuthorizeNetClient, AuthorizeNetClient>();
 
 //database
 builder.Services.AddDbContext<AppDbContext>(options => 
@@ -43,10 +46,10 @@ builder.Services.AddResponseCompression(options =>
 //    var key = builder.Configuration["JWTOptions:SecurityKey"] ?? "";
 //    options.TokenValidationParameters = new TokenValidationParameters
 //    {
-//        ValidateIssuer = true,  //验证Issuer
-//        ValidateAudience = true, //验证Audience
-//        ValidateLifetime = true,  //验证生命周期
-//        ValidateIssuerSigningKey = true, //验证密钥
+//        ValidateIssuer = true,  
+//        ValidateAudience = true,
+//        ValidateLifetime = true,
+//        ValidateIssuerSigningKey = true,
 //        ValidIssuer = builder.Configuration["JWTOptions:Issuer"],
 //        ValidAudience = builder.Configuration["JWTOptions:Audience"],
 //        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key))

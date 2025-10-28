@@ -1,9 +1,10 @@
 {
   "version": 2,
-  "dgSpecHash": "Oi489ncfZbg=",
+  "dgSpecHash": "ykkZxAuECiM=",
   "success": true,
   "projectFilePath": "/src/Server.csproj",
   "expectedPackageFiles": [
+    "/root/.nuget/packages/authorizenet/2.0.2/authorizenet.2.0.2.nupkg.sha512",
     "/root/.nuget/packages/humanizer.core/2.14.1/humanizer.core.2.14.1.nupkg.sha512",
     "/root/.nuget/packages/microsoft.bcl.asyncinterfaces/7.0.0/microsoft.bcl.asyncinterfaces.7.0.0.nupkg.sha512",
     "/root/.nuget/packages/microsoft.build.framework/17.8.3/microsoft.build.framework.17.8.3.nupkg.sha512",
@@ -49,5 +50,16 @@
     "/root/.nuget/packages/system.text.json/9.0.8/system.text.json.9.0.8.nupkg.sha512",
     "/root/.nuget/packages/system.threading.channels/7.0.0/system.threading.channels.7.0.0.nupkg.sha512"
   ],
-  "logs": []
+  "logs": [
+    {
+      "code": "NU1701",
+      "level": "Warning",
+      "warningLevel": 1,
+      "message": "Package 'AuthorizeNet 2.0.2' was restored using '.NETFramework,Version=v4.6.1, .NETFramework,Version=v4.6.2, .NETFramework,Version=v4.7, .NETFramework,Version=v4.7.1, .NETFramework,Version=v4.7.2, .NETFramework,Version=v4.8, .NETFramework,Version=v4.8.1' instead of the project target framework 'net8.0'. This package may not be fully compatible with your project.",
+      "libraryId": "AuthorizeNet",
+      "targetGraphs": [
+        "net8.0"
+      ]
+    }
+  ]
 }

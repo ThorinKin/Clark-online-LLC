@@ -2,6 +2,15 @@
   "version": 3,
   "targets": {
     "net8.0": {
+      "AuthorizeNet/2.0.2": {
+        "type": "package",
+        "compile": {
+          "lib/AuthorizeNet.dll": {}
+        },
+        "runtime": {
+          "lib/AuthorizeNet.dll": {}
+        }
+      },
       "Humanizer.Core/2.14.1": {
         "type": "package",
         "compile": {
@@ -968,6 +977,18 @@
     }
   },
   "libraries": {
+    "AuthorizeNet/2.0.2": {
+      "sha512": "mEGZtUPZ7HUqgyx66dTqsQN9tl12VJNm5C7/cvBUBD9jXwCeg7diWVUSe4wxiC/N5uVn83MjhHKJvQz4B7ZVQQ==",
+      "type": "package",
+      "path": "authorizenet/2.0.2",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "authorizenet.2.0.2.nupkg.sha512",
+        "authorizenet.nuspec",
+        "lib/AuthorizeNet.dll"
+      ]
+    },
     "Humanizer.Core/2.14.1": {
       "sha512": "lQKvtaTDOXnoVJ20ibTuSIOf2i0uO0MPbDhd1jm238I+U/2ZnRENj0cktKZhtchBMtCUSRQ5v4xBCUbKNmyVMw==",
       "type": "package",
@@ -2927,7 +2948,9 @@
   },
   "projectFileDependencyGroups": {
     "net8.0": [
+      "AuthorizeNet >= 2.0.2",
       "Microsoft.EntityFrameworkCore >= 9.0.8",
+      "Microsoft.EntityFrameworkCore.Design >= 9.0.8",
       "Microsoft.EntityFrameworkCore.Tools >= 9.0.8",
       "Pomelo.EntityFrameworkCore.MySql >= 9.0.0"
     ]
@@ -2974,7 +2997,17 @@
       "net8.0": {
         "targetAlias": "net8.0",
         "dependencies": {
+          "AuthorizeNet": {
+            "target": "Package",
+            "version": "[2.0.2, )"
+          },
           "Microsoft.EntityFrameworkCore": {
+            "target": "Package",
+            "version": "[9.0.8, )"
+          },
+          "Microsoft.EntityFrameworkCore.Design": {
+            "include": "Runtime, Build, Native, ContentFiles, Analyzers, BuildTransitive",
+            "suppressParent": "All",
             "target": "Package",
             "version": "[9.0.8, )"
           },
@@ -3011,5 +3044,17 @@
         "runtimeIdentifierGraphPath": "/usr/share/dotnet/sdk/8.0.414/PortableRuntimeIdentifierGraph.json"
       }
     }
-  }
+  },
+  "logs": [
+    {
+      "code": "NU1701",
+      "level": "Warning",
+      "warningLevel": 1,
+      "message": "Package 'AuthorizeNet 2.0.2' was restored using '.NETFramework,Version=v4.6.1, .NETFramework,Version=v4.6.2, .NETFramework,Version=v4.7, .NETFramework,Version=v4.7.1, .NETFramework,Version=v4.7.2, .NETFramework,Version=v4.8, .NETFramework,Version=v4.8.1' instead of the project target framework 'net8.0'. This package may not be fully compatible with your project.",
+      "libraryId": "AuthorizeNet",
+      "targetGraphs": [
+        "net8.0"
+      ]
+    }
+  ]
 }

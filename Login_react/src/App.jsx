@@ -12,7 +12,7 @@ import ProductsPage from '@/pages/ProductsPage';
 import AboutPage from '@/pages/AboutPage';
 import ContactPage from '@/pages/ContactPage';
 import CartPage from '@/pages/CartPage';
-import CheckoutPage from '@/pages/CheckoutPage';
+//import CheckoutPage from '@/pages/CheckoutPage';
 import PrivacyPolicyPage from '@/pages/PrivacyPolicyPage';
 import TermsOfServicePage from '@/pages/TermsOfServicePage';
 import RefundPolicyPage from '@/pages/RefundPolicyPage';
@@ -39,7 +39,6 @@ function App() {
               <Route path="/about" element={<AboutPage />} />
               <Route path="/contact" element={<ContactPage />} />
               <Route path="/cart" element={<CartPage />} />
-              <Route path="/checkout" element={<CheckoutPage />} />
               <Route path="/auth" element={<AuthPage />} />
               <Route path="/ai-image-editor" element={<AiImageEditorPage />} />
               <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />

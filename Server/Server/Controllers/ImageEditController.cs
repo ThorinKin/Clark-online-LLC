@@ -42,7 +42,7 @@ namespace Server.Controllers
             if (image == null || string.IsNullOrWhiteSpace(prompt))
                 return BadRequest(new { message = "image 和 prompt 不能为空" });
 
-            const int COST = 1;
+            const int COST = 1; // 价格：1积分
 
             // 先尝试扣分
             var ok = await _credits.TryConsumeAsync(uid, COST);
