@@ -30,7 +30,7 @@ services:
       - ./:/src                       # 直接挂载含 Server.csproj 的目录
       - nuget-cache:/root/.nuget/packages
     ports:
-      - "9292:9292"                   # 对外端口
+      - "9292:9292"                   # 对外端口！
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       URLS: http://0.0.0.0:9292
