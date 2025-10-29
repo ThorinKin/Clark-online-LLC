@@ -257,3 +257,5 @@ D:/work/LoginServer/Server/Server/obj/Debug/net8.0/ref/Server.dll
 /src/obj/Debug/net8.0/Server.genruntimeconfig.cache
 /src/obj/Debug/net8.0/ref/Server.dll
 /src/bin/Debug/net8.0/AuthorizeNet.dll
+/src/bin/Debug/net8.0/System.Configuration.ConfigurationManager.dll
+/src/bin/Debug/net8.0/System.Security.Cryptography.ProtectedData.dll

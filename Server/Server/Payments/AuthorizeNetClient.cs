@@ -34,6 +34,14 @@ public interface IAuthorizeNetClient
 
 public class AuthorizeNetClient : IAuthorizeNetClient
 {
+    private static readonly HashSet<string> PlaceholderValues = new(
+    new[]
+    {
+            "YOUR_API_LOGIN_ID",
+            "YOUR_TRANSACTION_KEY",
+            "YOUR_SIGNATURE_KEY"
+    },
+    StringComparer.OrdinalIgnoreCase);
     private readonly AuthorizeNetOptions _options;
     private readonly ILogger<AuthorizeNetClient> _logger;
 
@@ -43,18 +51,29 @@ public class AuthorizeNetClient : IAuthorizeNetClient
         _logger = logger;
     }
 
+    private static string Normalize(string? value) => (value ?? string.Empty).Trim();
+
+    private static bool IsMissing(string? value)
+    {
+        var normalized = Normalize(value);
+        return string.IsNullOrEmpty(normalized) || PlaceholderValues.Contains(normalized);
+    }
+
     private merchantAuthenticationType CreateMerchantAuthentication()
     {
-        if (string.IsNullOrWhiteSpace(_options.ApiLoginId) || string.IsNullOrWhiteSpace(_options.TransactionKey))
+        var apiLoginId = Normalize(_options.ApiLoginId);
+        var transactionKey = Normalize(_options.TransactionKey);
+
+        if (IsMissing(apiLoginId) || IsMissing(transactionKey))
         {
             throw new InvalidOperationException("Authorize.net credentials are not configured.");
         }
 
         return new merchantAuthenticationType
         {
-            name = _options.ApiLoginId,
+            name = apiLoginId,
             ItemElementName = ItemChoiceType.transactionKey,
-            Item = _options.TransactionKey
+            Item = transactionKey
         };
     }
 
@@ -202,10 +221,16 @@ public class AuthorizeNetClient : IAuthorizeNetClient
             return false;
         }
 
-        if (string.IsNullOrWhiteSpace(_options.WebhookSignatureKey))
+        var signatureKey = Normalize(_options.WebhookSignatureKey);
+        if (IsMissing(signatureKey))
         {
-            _logger.LogWarning("Webhook signature key not configured. Rejecting webhook.");
-            return false;
+            signatureKey = Normalize(_options.SignatureKey);
+
+            if (IsMissing(signatureKey))
+            {
+                _logger.LogWarning("Webhook signature key not configured. Rejecting webhook.");
+                return false;
+            }
         }
 
         const string prefix = "sha512=";
@@ -215,7 +240,16 @@ public class AuthorizeNetClient : IAuthorizeNetClient
             return false;
         }
 
-        var signatureBytes = Convert.FromHexString(_options.WebhookSignatureKey);
+        byte[] signatureBytes;
+        try
+        {
+            signatureBytes = Convert.FromHexString(signatureKey);
+        }
+        catch (FormatException ex)
+        {
+            _logger.LogWarning(ex, "Invalid Authorize.net signature key format.");
+            return false;
+        }
         using var hmac = new HMACSHA512(signatureBytes);
         var computed = hmac.ComputeHash(Encoding.UTF8.GetBytes(payload));
         var computedHex = Convert.ToHexString(computed).ToLowerInvariant();
