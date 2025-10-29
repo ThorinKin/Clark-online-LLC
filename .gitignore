@@ -29,6 +29,9 @@ desktop.ini
 **/.env
 **/.env.*
 !**/.env.example
+!Login_react/.env
+!Login_react/.env.development
+!Login_react/.env.production
 
 # ===== Frontend: Vite + React (Login_react) =====
 Login_react/node_modules/
