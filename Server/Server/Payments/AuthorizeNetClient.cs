@@ -34,14 +34,14 @@ public interface IAuthorizeNetClient
 
 public class AuthorizeNetClient : IAuthorizeNetClient
 {
-    private static readonly HashSet<string> PlaceholderValues = new(
-    new[]
-    {
+    private static readonly HashSet<string> PlaceholderValues = new HashSet<string>(
+        new[]
+        {
             "YOUR_API_LOGIN_ID",
             "YOUR_TRANSACTION_KEY",
             "YOUR_SIGNATURE_KEY"
-    },
-    StringComparer.OrdinalIgnoreCase);
+        },
+        StringComparer.OrdinalIgnoreCase);
     private readonly AuthorizeNetOptions _options;
     private readonly ILogger<AuthorizeNetClient> _logger;
 
@@ -83,28 +83,38 @@ public class AuthorizeNetClient : IAuthorizeNetClient
 
     private static bool IsMissing(string? value)
     {
-        var normalized = Normalize(value);
-        return string.IsNullOrEmpty(normalized) || PlaceholderValues.Contains(normalized);
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return true;
+        }
+        var normalized = value.Trim();
+        foreach (var placeholder in PlaceholderValues)
+        {
+            if (string.Equals(normalized, placeholder, StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+        }
+        return false;
     }
 
     private merchantAuthenticationType CreateMerchantAuthentication()
     {
+        var missing = new List<string>();
         var apiLoginId = _options.ApiLoginId;
-        var transactionKey = _options.TransactionKey;
-
-        if (IsMissing(apiLoginId) || IsMissing(transactionKey))
+        if (IsMissing(apiLoginId))
         {
-            var missing = new List<string>();
+            missing.Add(nameof(_options.ApiLoginId));
+        }
 
-            if (IsMissing(apiLoginId))
-            {
-                missing.Add(nameof(_options.ApiLoginId));
-            }
+        var transactionKey = _options.TransactionKey;
+        if (IsMissing(transactionKey))
+        {
+            missing.Add(nameof(_options.TransactionKey));
+        }
 
-            if (IsMissing(transactionKey))
-            {
-                missing.Add(nameof(_options.TransactionKey));
-            }
+        if (missing.Count > 0)
+        {
 
             var message = $"Authorize.net credentials are not configured ({string.Join(", ", missing)}).";
             _logger.LogError(message);
@@ -113,9 +123,9 @@ public class AuthorizeNetClient : IAuthorizeNetClient
 
         return new merchantAuthenticationType
         {
-            name = apiLoginId,
+            name = Normalize(apiLoginId),
             ItemElementName = ItemChoiceType.transactionKey,
-            Item = transactionKey
+            Item = Normalize(transactionKey)
         };
     }
 
