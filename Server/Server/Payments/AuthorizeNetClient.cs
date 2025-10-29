@@ -83,11 +83,12 @@ public class AuthorizeNetClient : IAuthorizeNetClient
 
     private static bool IsMissing(string? value)
     {
-        if (string.IsNullOrWhiteSpace(value))
-        {
+        var normalized = value?.Trim();
+
+        if (string.IsNullOrEmpty(normalized))
+        {        
             return true;
         }
-        var normalized = value.Trim();
         foreach (var placeholder in PlaceholderValues)
         {
             if (string.Equals(normalized, placeholder, StringComparison.OrdinalIgnoreCase))
@@ -101,13 +102,13 @@ public class AuthorizeNetClient : IAuthorizeNetClient
     private merchantAuthenticationType CreateMerchantAuthentication()
     {
         var missing = new List<string>();
-        var apiLoginId = _options.ApiLoginId;
+        var apiLoginId = Normalize(_options.ApiLoginId);
         if (IsMissing(apiLoginId))
         {
             missing.Add(nameof(_options.ApiLoginId));
         }
 
-        var transactionKey = _options.TransactionKey;
+        var transactionKey = Normalize(_options.TransactionKey);
         if (IsMissing(transactionKey))
         {
             missing.Add(nameof(_options.TransactionKey));
