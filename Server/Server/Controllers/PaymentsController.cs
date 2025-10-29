@@ -146,11 +146,11 @@ public class PaymentsController : ControllerBase
 		_db.PaymentTransactions.Add(transaction);
 		await _db.SaveChangesAsync(cancellationToken);
 
-		return Ok(new
-		{
-			session.token,
-			paymentUrl = session.PaymentUrl,
-			invoiceNumber,
+        return Ok(new
+        {
+            token = session.Token,
+            paymentUrl = session.PaymentUrl,
+            invoiceNumber,
 			amount = totalAmount,
 			currency = "USD",
 			credits = totalCredits,

@@ -65,7 +65,7 @@ public class AuthorizeNetClient : IAuthorizeNetClient
             : AuthorizeNet.Environment.SANDBOX;
 
         ApiOperationBase<ANetApiRequest, ANetApiResponse>.RunEnvironment = env;
-        ApiOperationBase<ANetApiRequest, ANetApiResponse>.merchantAuthentication = CreateMerchantAuthentication();
+        ApiOperationBase<ANetApiRequest, ANetApiResponse>.MerchantAuthentication = CreateMerchantAuthentication();
     }
 
     public Task<HostedPaymentSession> CreateHostedPaymentSessionAsync(
@@ -149,7 +149,7 @@ public class AuthorizeNetClient : IAuthorizeNetClient
         controller.Execute();
         var response = controller.GetApiResponse();
 
-        if (response == null || response.messages?.resultCode != messageEnum.Ok)
+        if (response == null || response.messages?.resultCode != messageTypeEnum.Ok)
         {
             var errorText = response?.messages?.message?.FirstOrDefault()?.text
                 ?? controller.GetErrorResponse()?.messages?.message?.FirstOrDefault()?.text
@@ -177,7 +177,7 @@ public class AuthorizeNetClient : IAuthorizeNetClient
         controller.Execute();
         var response = controller.GetApiResponse();
 
-        if (response == null || response.messages?.resultCode != messageEnum.Ok)
+        if (response == null || response.messages?.resultCode != messageTypeEnum.Ok)
         {
             var errorText = response?.messages?.message?.FirstOrDefault()?.text
                 ?? controller.GetErrorResponse()?.messages?.message?.FirstOrDefault()?.text
@@ -186,7 +186,7 @@ public class AuthorizeNetClient : IAuthorizeNetClient
             return null;
         }
 
-        return Task.FromResult(new TransactionDetails(
+        return Task.FromResult<TransactionDetails?>(new TransactionDetails(
             response.transaction?.transId ?? transactionId,
             response.transaction?.order?.invoiceNumber ?? string.Empty,
             response.transaction?.authAmount ?? 0m,

@@ -8,12 +8,22 @@
     ".NETCoreApp,Version=v8.0": {
       "Server/1.0.0": {
         "dependencies": {
+          "AuthorizeNet": "2.0.2",
           "Microsoft.EntityFrameworkCore": "9.0.8",
+          "Microsoft.EntityFrameworkCore.Design": "9.0.8",
           "Microsoft.EntityFrameworkCore.Tools": "9.0.8",
           "Pomelo.EntityFrameworkCore.MySql": "9.0.0"
         },
         "runtime": {
           "Server.dll": {}
+        }
+      },
+      "AuthorizeNet/2.0.2": {
+        "runtime": {
+          "lib/AuthorizeNet.dll": {
+            "assemblyVersion": "0.0.0.0",
+            "fileVersion": "0.0.0.0"
+          }
         }
       },
       "Humanizer.Core/2.14.1": {
@@ -660,6 +670,13 @@
       "type": "project",
       "serviceable": false,
       "sha512": ""
+    },
+    "AuthorizeNet/2.0.2": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-mEGZtUPZ7HUqgyx66dTqsQN9tl12VJNm5C7/cvBUBD9jXwCeg7diWVUSe4wxiC/N5uVn83MjhHKJvQz4B7ZVQQ==",
+      "path": "authorizenet/2.0.2",
+      "hashPath": "authorizenet.2.0.2.nupkg.sha512"
     },
     "Humanizer.Core/2.14.1": {
       "type": "package",

@@ -256,3 +256,4 @@ D:/work/LoginServer/Server/Server/obj/Debug/net8.0/ref/Server.dll
 /src/obj/Debug/net8.0/Server.pdb
 /src/obj/Debug/net8.0/Server.genruntimeconfig.cache
 /src/obj/Debug/net8.0/ref/Server.dll
+/src/bin/Debug/net8.0/AuthorizeNet.dll
