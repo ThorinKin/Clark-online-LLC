@@ -74,5 +74,9 @@ docker-compose.*.local.yml
 **/data/**
 **/tmp/**
 
+# 允许跟踪前端的产品数据文件
+!Login_react/src/data/
+!Login_react/src/data/products.js
+
 # ===== 其他 =====
 coverage/

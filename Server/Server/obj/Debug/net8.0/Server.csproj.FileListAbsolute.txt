@@ -256,9 +256,3 @@ D:/work/LoginServer/Server/Server/obj/Debug/net8.0/ref/Server.dll
 /src/obj/Debug/net8.0/Server.pdb
 /src/obj/Debug/net8.0/Server.genruntimeconfig.cache
 /src/obj/Debug/net8.0/ref/Server.dll
-/src/bin/Debug/net8.0/publish/web.config
-/src/bin/Debug/net8.0/publish/appsettings.Development.json
-/src/bin/Debug/net8.0/publish/appsettings.json
-/src/bin/Debug/net8.0/publish/Server.deps.json
-/src/bin/Debug/net8.0/publish/Server.runtimeconfig.json
-/src/bin/Debug/net8.0/publish/Server.staticwebassets.endpoints.json
