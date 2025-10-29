@@ -47,8 +47,36 @@ public class AuthorizeNetClient : IAuthorizeNetClient
 
     public AuthorizeNetClient(IOptions<AuthorizeNetOptions> options, ILogger<AuthorizeNetClient> logger)
     {
-        _options = options.Value;
-        _logger = logger;
+        if (options == null)
+        {
+            throw new ArgumentNullException(nameof(options));
+        }
+
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+
+        var value = options.Value ?? throw new InvalidOperationException("Authorize.net configuration is missing.");
+
+        var environment = Normalize(value.Environment);
+        if (string.IsNullOrEmpty(environment))
+        {
+            environment = "sandbox";
+        }
+
+        var paymentFormUrl = Normalize(value.PaymentFormUrl);
+        if (string.IsNullOrEmpty(paymentFormUrl))
+        {
+            paymentFormUrl = "https://accept.authorize.net/payment/payment";
+        }
+
+        _options = new AuthorizeNetOptions
+        {
+            ApiLoginId = Normalize(value.ApiLoginId),
+            TransactionKey = Normalize(value.TransactionKey),
+            SignatureKey = Normalize(value.SignatureKey),
+            WebhookSignatureKey = Normalize(value.WebhookSignatureKey),
+            Environment = environment,
+            PaymentFormUrl = paymentFormUrl
+        };
     }
 
     private static string Normalize(string? value) => (value ?? string.Empty).Trim();
@@ -61,12 +89,26 @@ public class AuthorizeNetClient : IAuthorizeNetClient
 
     private merchantAuthenticationType CreateMerchantAuthentication()
     {
-        var apiLoginId = Normalize(_options.ApiLoginId);
-        var transactionKey = Normalize(_options.TransactionKey);
+        var apiLoginId = _options.ApiLoginId;
+        var transactionKey = _options.TransactionKey;
 
         if (IsMissing(apiLoginId) || IsMissing(transactionKey))
         {
-            throw new InvalidOperationException("Authorize.net credentials are not configured.");
+            var missing = new List<string>();
+
+            if (IsMissing(apiLoginId))
+            {
+                missing.Add(nameof(_options.ApiLoginId));
+            }
+
+            if (IsMissing(transactionKey))
+            {
+                missing.Add(nameof(_options.TransactionKey));
+            }
+
+            var message = $"Authorize.net credentials are not configured ({string.Join(", ", missing)}).";
+            _logger.LogError(message);
+            throw new InvalidOperationException(message);
         }
 
         return new merchantAuthenticationType
