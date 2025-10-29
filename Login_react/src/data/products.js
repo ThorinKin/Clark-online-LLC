@@ -7,7 +7,8 @@ export const products = [
         credits: 5,
         type: 'conversation',
         category: 'AI Conversations',
-        popular: false
+        popular: false,
+        image: 'https://horizons-cdn.hostinger.com/f2fcac03-46c3-44be-8f01-e8b846a720ae/72e0366dcc7ce45a7b6d3a0a0938410f.png'
     },
     {
         id: 'conv-starter',
@@ -17,7 +18,8 @@ export const products = [
         credits: 20,
         type: 'conversation',
         category: 'AI Conversations',
-        popular: true
+        popular: true,
+        image: 'https://horizons-cdn.hostinger.com/f2fcac03-46c3-44be-8f01-e8b846a720ae/ea70100e9109551537fc031e247a9816.png'
     },
     {
         id: 'conv-pro',
@@ -27,7 +29,8 @@ export const products = [
         credits: 60,
         type: 'conversation',
         category: 'AI Conversations',
-        popular: true
+        popular: true,
+        image: 'https://horizons-cdn.hostinger.com/f2fcac03-46c3-44be-8f01-e8b846a720ae/2e66bcc48f77f2c9dbf111088d092891.png'
     },
     {
         id: 'conv-business',
@@ -37,7 +40,9 @@ export const products = [
         credits: 180,
         type: 'conversation',
         category: 'AI Conversations',
-        popular: false
+        popular: false,
+        image: 'https://horizons-cdn.hostinger.com/f2fcac03-46c3-44be-8f01-e8b846a720ae/e32125dc41b57321ae9c96f8f7d267e9.png'
+
     },
     {
         id: 'conv-enterprise',
@@ -47,7 +52,9 @@ export const products = [
         credits: 400,
         type: 'conversation',
         category: 'AI Conversations',
-        popular: false
+        popular: false,
+        image: 'https://horizons-cdn.hostinger.com/f2fcac03-46c3-44be-8f01-e8b846a720ae/7eecd7347429413e28b73c088c50ab59.png'
+
     },
     {
         id: 'video-basic',
@@ -57,7 +64,9 @@ export const products = [
         credits: 100,
         type: 'video',
         category: 'Image-to-Video Minutes',
-        popular: true
+        popular: true,
+        image: 'https://horizons-cdn.hostinger.com/f2fcac03-46c3-44be-8f01-e8b846a720ae/bfb349a40164e162398fb5b278acf003.png'
+
     },
     {
         id: 'video-standard',
@@ -67,7 +76,9 @@ export const products = [
         credits: 300,
         type: 'video',
         category: 'Image-to-Video Minutes',
-        popular: false
+        popular: false,
+        image: 'https://horizons-cdn.hostinger.com/f2fcac03-46c3-44be-8f01-e8b846a720ae/64b9c19c0238a1357f7fac97173405aa.png'
+
     },
     {
         id: 'video-premium',
@@ -77,6 +88,8 @@ export const products = [
         credits: 800,
         type: 'video',
         category: 'Image-to-Video Minutes',
-        popular: false
+        popular: false,
+        image: 'https://horizons-cdn.hostinger.com/f2fcac03-46c3-44be-8f01-e8b846a720ae/1144094ccaf3a6598b04a80d81e049fa.png'
+
     }
 ];
