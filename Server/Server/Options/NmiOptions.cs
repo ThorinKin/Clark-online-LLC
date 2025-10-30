@@ -5,7 +5,7 @@ public class NmiOptions
 {
     public const string SectionName = "NMI";
 
-    public string PrivateApiKey { get; set; } = string.Empty;
+    public string PrivateApiKey { get; set; } = "69CW6P52Q2nwfz65U646ZnyXRazd2U5C";
 
     public string? PublicTokenizationKey { get; set; }
 
