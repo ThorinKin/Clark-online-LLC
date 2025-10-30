@@ -1,23 +1,37 @@
 // Server/Program.cs
 using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using Server.Models.DataBase;
+using Server.Options;
 using Server.Services;
+using Server.Services.Nmi;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddScoped<ICreditService, CreditService>(); // 扣减积分服务
+builder.Services.Configure<NmiOptions>(builder.Configuration.GetSection(NmiOptions.SectionName));
 
 //database
-builder.Services.AddDbContext<AppDbContext>(options => 
+builder.Services.AddDbContext<AppDbContext>(options =>
+
 {
-    options.UseMySql(builder.Configuration.GetConnectionString("ServerDB"),ServerVersion.AutoDetect(builder.Configuration.GetConnectionString("ServerDB")), builder =>
+    options.UseMySql(builder.Configuration.GetConnectionString("ServerDB"), ServerVersion.AutoDetect(builder.Configuration.GetConnectionString("ServerDB")), builder =>
     {
         builder.EnableRetryOnFailure(0);
     });
 });
 
 builder.Services.AddHttpClient();
+builder.Services.AddHttpClient<INmiClient, NmiClient>((serviceProvider, client) =>
+{
+    var options = serviceProvider.GetRequiredService<IOptions<NmiOptions>>().Value;
+    if (Uri.TryCreate(options.BaseUrl, UriKind.Absolute, out var baseUri))
+    {
+        client.BaseAddress = baseUri;
+    }
+});
 
 builder.Services.AddControllers().AddJsonOptions(options =>
 {
@@ -43,7 +57,7 @@ builder.Services.AddResponseCompression(options =>
 //    var key = builder.Configuration["JWTOptions:SecurityKey"] ?? "";
 //    options.TokenValidationParameters = new TokenValidationParameters
 //    {
-//        ValidateIssuer = true,  //验证Issuer
+//        ValidateIssuer = true,   //验证Issuer
 //        ValidateAudience = true, //验证Audience
 //        ValidateLifetime = true,  //验证生命周期
 //        ValidateIssuerSigningKey = true, //验证密钥
@@ -73,4 +87,3 @@ app.UseResponseCompression();
 app.UseAuthorization();
 app.MapControllers();
 app.Run();
-

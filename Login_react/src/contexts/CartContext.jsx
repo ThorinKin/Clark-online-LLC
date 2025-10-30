@@ -1,4 +1,30 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
+import { products } from '@/data/products';
+
+const STORAGE_KEY = 'ttxs-cart';
+
+const productLookup = products.reduce((acc, product) => {
+    acc[product.id] = product;
+    return acc;
+}, {});
+
+const rehydrateCartItems = (items) => {
+    if (!Array.isArray(items)) return [];
+
+    return items
+        .map(item => {
+            const baseProduct = productLookup[item?.id];
+            if (!baseProduct) return null;
+
+            const quantity = Number.isFinite(item?.quantity) && item.quantity > 0 ? item.quantity : 1;
+
+            return {
+                ...baseProduct,
+                quantity,
+            };
+        })
+        .filter(Boolean);
+};
 
 const CartContext = createContext();
 
@@ -11,32 +37,48 @@ export const useCart = () => {
 };
 
 export const CartProvider = ({ children }) => {
-  const [cartItems, setCartItems] = useState([]);
+    const [cartItems, setCartItems] = useState([]);
+    const serializedCart = useMemo(
+        () => JSON.stringify(cartItems.map(item => ({ ...item, quantity: item.quantity }))),
+        [cartItems]
+    );
 
-  useEffect(() => {
-    const savedCart = localStorage.getItem('ttxs-cart');
-    if (savedCart) {
-      setCartItems(JSON.parse(savedCart));
-    }
-  }, []);
+    useEffect(() => {
+        try {
+            const savedCart = localStorage.getItem(STORAGE_KEY);
+            if (!savedCart) return;
 
-  useEffect(() => {
-    localStorage.setItem('ttxs-cart', JSON.stringify(cartItems));
-  }, [cartItems]);
+            const parsed = JSON.parse(savedCart);
+            const hydrated = rehydrateCartItems(parsed);
+            setCartItems(hydrated);
+        } catch (error) {
+            console.warn('Failed to load cart from storage', error);
+            localStorage.removeItem(STORAGE_KEY);
+        }
+    }, []);
 
-  const addToCart = (product) => {
+    useEffect(() => {
+        localStorage.setItem(STORAGE_KEY, serializedCart);
+    }, [serializedCart]);
+
+    const addToCart = (product) => {
+        const baseProduct = productLookup[product?.id];
+        if (!baseProduct) {
+            console.warn('Attempted to add unknown product to cart', product);
+            return;
+        }
     setCartItems(prev => {
-      const existingItem = prev.find(item => item.id === product.id);
-      if (existingItem) {
+        const existingItem = prev.find(item => item.id === product.id);
+        if (existingItem) {
         return prev.map(item =>
-          item.id === product.id
+            item.id === product.id
             ? { ...item, quantity: item.quantity + 1 }
             : item
         );
-      }
-      return [...prev, { ...product, quantity: 1 }];
+        }
+        return [...prev, { ...baseProduct, quantity: 1 }];
     });
-  };
+    };
 
   const removeFromCart = (productId) => {
     setCartItems(prev => prev.filter(item => item.id !== productId));

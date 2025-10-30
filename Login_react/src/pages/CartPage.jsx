@@ -1,14 +1,86 @@
 //Login_react/src/pages/CartPage.jsx
-import React from 'react';
-import { Link } from 'react-router-dom';
+import React, { useCallback, useMemo, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Helmet } from 'react-helmet';
 import { Trash2, Plus, Minus, ShoppingBag, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useCart } from '@/contexts/CartContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { requestWithFetch } from '@/service/fetch';
+import { toast } from '@/components/ui/use-toast';
+import { loadCollectCheckoutScript } from '@/lib/loadCollectCheckout';
 
 const CartPage = () => {
   const { cartItems, removeFromCart, updateQuantity, getTotalPrice, getTotalItems } = useCart();
+    const { isAuthenticated, userId } = useAuth();
+    const navigate = useNavigate();
+    const [isProcessing, setIsProcessing] = useState(false);
+
+    const lineItems = useMemo(
+        () =>
+            cartItems.map(item => ({
+                id: item.id,
+                name: item.name,
+                nmiSku: item.nmiSku,
+                quantity: item.quantity,
+                unitAmount: item.price,
+                currency: item.currency,
+                credits: item.credits,
+            })),
+        [cartItems]
+    );
+
+    const handleCheckout = useCallback(async () => {
+        if (!cartItems.length || isProcessing) return;
+
+        if (!isAuthenticated || !userId) {
+            toast({
+                title: 'Login required',
+                description: 'Please sign in before proceeding to checkout.',
+                variant: 'destructive',
+            });
+            navigate('/auth');
+            return;
+        }
+
+        setIsProcessing(true);
+        try {
+            const collect = await loadCollectCheckoutScript();
+
+            const response = await requestWithFetch('/api/orders', {
+                payload: {
+                    items: lineItems,
+                    successUrl: `${window.location.origin}/payment-success`,
+                    cancelUrl: `${window.location.origin}/payment-failed`,
+                },
+                headers: { 'X-User-Id': userId },
+            });
+
+            const { checkoutId, checkoutUrl } = response;
+
+            if (collect?.redirectToCheckout && checkoutId) {
+                await collect.redirectToCheckout({ checkoutId });
+                return;
+            }
+
+            if (checkoutUrl) {
+                window.location.href = checkoutUrl;
+                return;
+            }
+
+            throw new Error('Missing Collect Checkout redirect information.');
+        } catch (error) {
+            console.error('Checkout error', error);
+            toast({
+                title: 'Checkout failed',
+                description: error?.message ?? 'Unable to start checkout. Please try again.',
+                variant: 'destructive',
+            });
+        } finally {
+            setIsProcessing(false);
+        }
+    }, [cartItems.length, isProcessing, isAuthenticated, userId, navigate, lineItems]);
 
   if (cartItems.length === 0) {
     return (
@@ -152,12 +224,14 @@ const CartPage = () => {
               </div>
             </div>
 
-            <Link to="/checkout" className="block">
-              <Button className="w-full bg-primary text-primary-foreground hover:bg-primary/90 font-medium py-3 px-6 rounded-lg transition-all duration-300">
-                Proceed to Checkout
+            <Button
+                className="w-full bg-primary text-primary-foreground hover:bg-primary/90 font-medium py-3 px-6 rounded-lg transition-all duration-300"
+                disabled={isProcessing}
+                onClick={handleCheckout}
+            >
+                {isProcessing ? 'Redirecting¡­' : 'Checkout'}
                 <ArrowRight className="ml-2 w-5 h-5" />
-              </Button>
-            </Link>
+            </Button>
 
             <Link to="/products" className="block mt-4">
               <Button variant="outline" className="w-full">

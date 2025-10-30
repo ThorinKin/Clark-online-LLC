@@ -21,6 +21,98 @@ namespace Server.Migrations
 
             MySqlModelBuilderExtensions.AutoIncrementColumns(modelBuilder);
 
+            modelBuilder.Entity("Server.Models.DataBase.Order", b =>
+            {
+                b.Property<Guid>("Id")
+                    .HasColumnType("char(36)");
+
+                b.Property<string>("CheckoutUrl")
+                    .HasColumnType("varchar(128)");
+
+                b.Property<string>("CollectCheckoutId")
+                    .HasColumnType("varchar(128)");
+
+                b.Property<DateTimeOffset>("CreatedAt")
+                    .HasColumnType("datetime(6)");
+
+                b.Property<string>("Currency")
+                    .IsRequired()
+                    .HasColumnType("varchar(8)");
+
+                b.Property<string>("FailureReason")
+                    .HasColumnType("varchar(256)");
+
+                b.Property<string>("OrderNumber")
+                    .IsRequired()
+                    .HasColumnType("varchar(64)");
+
+                b.Property<DateTimeOffset?>("PaidAt")
+                    .HasColumnType("datetime(6)");
+
+                b.Property<int>("Status")
+                    .HasColumnType("int");
+
+                b.Property<decimal>("TotalAmount")
+                    .HasColumnType("decimal(18,2)");
+
+                b.Property<int>("TotalCredits")
+                    .HasColumnType("int");
+
+                b.Property<string>("TransactionId")
+                    .HasColumnType("varchar(128)");
+
+                b.Property<DateTimeOffset?>("UpdatedAt")
+                    .HasColumnType("datetime(6)");
+
+                b.Property<string>("UserId")
+                    .IsRequired()
+                    .HasColumnType("varchar(50)");
+
+                b.HasKey("Id");
+
+                b.HasIndex("OrderNumber")
+                    .IsUnique();
+
+                b.ToTable("Orders");
+            });
+
+            modelBuilder.Entity("Server.Models.DataBase.OrderItem", b =>
+            {
+                b.Property<int>("Id")
+                    .ValueGeneratedOnAdd()
+                    .HasColumnType("int");
+
+                b.Property<int>("Credits")
+                    .HasColumnType("int");
+
+                b.Property<string>("Name")
+                    .IsRequired()
+                    .HasColumnType("varchar(100)");
+
+                b.Property<string>("NmiSku")
+                    .IsRequired()
+                    .HasColumnType("varchar(128)");
+
+                b.Property<Guid>("OrderId")
+                    .HasColumnType("char(36)");
+
+                b.Property<string>("ProductId")
+                    .IsRequired()
+                    .HasColumnType("varchar(50)");
+
+                b.Property<int>("Quantity")
+                    .HasColumnType("int");
+
+                b.Property<decimal>("UnitAmount")
+                    .HasColumnType("decimal(18,2)");
+
+                b.HasKey("Id");
+
+                b.HasIndex("OrderId");
+
+                b.ToTable("OrderItems");
+            });
+
             modelBuilder.Entity("Server.Models.DataBase.User", b =>
                 {
                     b.Property<string>("Id")
@@ -53,6 +145,22 @@ namespace Server.Migrations
 
                     b.ToTable("Users");
                 });
+
+            modelBuilder.Entity("Server.Models.DataBase.OrderItem", b =>
+            {
+                b.HasOne("Server.Models.DataBase.Order", "Order")
+                    .WithMany("Items")
+                    .HasForeignKey("OrderId")
+                    .OnDelete(DeleteBehavior.Cascade)
+                    .IsRequired();
+
+                b.Navigation("Order");
+            });
+
+            modelBuilder.Entity("Server.Models.DataBase.Order", b =>
+            {
+                b.Navigation("Items");
+            });
 #pragma warning restore 612, 618
         }
     }
