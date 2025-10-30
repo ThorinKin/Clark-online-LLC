@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
-using MySql.EntityFrameworkCore.Extensions;
+//using MySql.EntityFrameworkCore.Extensions;
 using Server.Models.DataBase;
 
 #nullable disable
