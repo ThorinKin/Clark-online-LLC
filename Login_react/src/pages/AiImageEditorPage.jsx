@@ -122,8 +122,8 @@ const AiImageEditorPage = () => {
             toast({ title: "Missing Information", description: "Please upload an image and provide edit instructions.", variant: "destructive" });
             return;
         }
-        if (typeof credits === 'number' && credits < 10) {
-            toast({ title: "Insufficient credits", description: "You need at least 10 credits to generate.", variant: "destructive" });
+        if (typeof credits === 'number' && credits < 1) {
+            toast({ title: "Insufficient credits", description: "You need at least 1 credits to generate.", variant: "destructive" });
             return;
         }
 
