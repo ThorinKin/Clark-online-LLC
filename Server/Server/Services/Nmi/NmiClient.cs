@@ -1,4 +1,5 @@
 // Server/Server/Services/Nmi/NmiClient.cs
+using System;
 using System.Linq;
 using System.Net.Http.Headers;
 using System.Text;
@@ -42,8 +43,22 @@ public class NmiClient : INmiClient
         {
             _logger.LogWarning("NMI private key not configured. Using stub checkout for order {OrderId}", request.OrderId);
             var stubTransactionId = $"stub-{Guid.NewGuid():N}";
-            var url = $"{request.SuccessUrl}?orderId={request.OrderId}&t={stubTransactionId}";
-            return new NmiCheckoutResponse($"stub-{request.OrderId:N}", url);
+            var redirectUrl = request.SuccessUrl;
+
+            if (!string.IsNullOrWhiteSpace(redirectUrl))
+            {
+                if (redirectUrl.Contains("(TRANSACTION_ID)", StringComparison.OrdinalIgnoreCase))
+                {
+                    redirectUrl = redirectUrl.Replace("(TRANSACTION_ID)", stubTransactionId, StringComparison.OrdinalIgnoreCase);
+                }
+                else
+                {
+                    var separator = redirectUrl.Contains('?') ? '&' : '?';
+                    redirectUrl = $"{redirectUrl}{separator}t={stubTransactionId}";
+                }
+            }
+
+            return new NmiCheckoutResponse($"stub-{request.OrderId:N}", redirectUrl);
         }
 
         var payload = new

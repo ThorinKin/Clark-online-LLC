@@ -5,8 +5,11 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Server.Models.DataBase;
 using Server.Options;
+using Microsoft.AspNetCore.WebUtilities;
+using Microsoft.Extensions.Primitives;
 using Server.Services;
 using Server.Services.Nmi;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Text;
@@ -262,18 +265,67 @@ public class OrdersController : ControllerBase
             return string.Empty;
         }
 
-        var separator = baseUrl.Contains('?') ? '&' : '?';
-        var url = new StringBuilder(baseUrl);
-        url.Append(separator);
-        url.Append("orderId=");
-        url.Append(orderId);
+        var fragmentIndex = baseUrl.IndexOf('#');
+        var fragment = fragmentIndex >= 0 ? baseUrl.Substring(fragmentIndex) : string.Empty;
+        var withoutFragment = fragmentIndex >= 0 ? baseUrl[..fragmentIndex] : baseUrl;
+
+        var questionIndex = withoutFragment.IndexOf('?');
+        var path = questionIndex >= 0 ? withoutFragment[..questionIndex] : withoutFragment;
+        var existingQuery = questionIndex >= 0 ? withoutFragment[(questionIndex + 1)..] : string.Empty;
+
+        Dictionary<string, StringValues> queryParameters;
+        if (string.IsNullOrWhiteSpace(existingQuery))
+        {
+            queryParameters = new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase);
+        }
+        else
+        {
+            try
+            {
+                queryParameters = new Dictionary<string, StringValues>(QueryHelpers.ParseQuery("?" + existingQuery), StringComparer.OrdinalIgnoreCase);
+            }
+            catch
+            {
+                queryParameters = new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase);
+            }
+        }
+
+        queryParameters["orderId"] = orderId.ToString();
 
         if (includeTransactionPlaceholder)
         {
-            url.Append("&t=(TRANSACTION_ID)");
+            const string placeholder = "(TRANSACTION_ID)";
+            if (!queryParameters.TryGetValue("t", out var values) || !values.Any(value => value.Contains(placeholder, StringComparison.OrdinalIgnoreCase)))
+            {
+                queryParameters["t"] = placeholder;
+            }
         }
 
-        return url.ToString();
+        var builder = new StringBuilder(path);
+        var first = true;
+        foreach (var kvp in queryParameters)
+        {
+            foreach (var value in kvp.Value)
+            {
+                builder.Append(first ? '?' : '&');
+                first = false;
+                builder.Append(Uri.EscapeDataString(kvp.Key));
+                builder.Append('=');
+
+                var shouldPreserveValue = includeTransactionPlaceholder
+                    && string.Equals(kvp.Key, "t", StringComparison.OrdinalIgnoreCase)
+                    && string.Equals(value, "(TRANSACTION_ID)", StringComparison.Ordinal);
+
+                builder.Append(shouldPreserveValue ? value : Uri.EscapeDataString(value));
+            }
+        }
+
+        if (!string.IsNullOrEmpty(fragment))
+        {
+            builder.Append(fragment);
+        }
+
+        return builder.ToString();
     }
 }
 

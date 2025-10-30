@@ -1,5 +1,5 @@
 //Login_react/src/pages/PaymentSuccessPage.jsx
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Helmet } from 'react-helmet';
 import { Link, useSearchParams } from 'react-router-dom';
@@ -17,6 +17,27 @@ const PaymentSuccessPage = () => {
     const [message, setMessage] = useState('We are verifying your payment. Hang tight while we confirm the transaction.');
     const [creditsAwarded, setCreditsAwarded] = useState(null);
     const clearCartRef = useRef(clearCart);
+    const refreshCredits = useCallback(async () => {
+        if (!userId) {
+            return null;
+        }
+
+        try {
+            const credits = await requestWithFetch('/api/user/me/credits', {
+                method: 'GET',
+                headers: { 'X-User-Id': userId },
+            });
+
+            if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent('credits:updated', { detail: credits }));
+            }
+
+            return credits;
+        } catch (error) {
+            console.error('Failed to refresh credits', error);
+            return null;
+        }
+    }, [userId]);
 
     useEffect(() => {
         clearCartRef.current = clearCart;
@@ -49,8 +70,10 @@ const PaymentSuccessPage = () => {
                 if (cancelled) return;
 
                 setStatus('success');
+                setMessage('Your payment has been confirmed and your credits are ready to use.');
                 setCreditsAwarded(response?.creditsAwarded ?? null);
                 clearCartRef.current?.();
+                await refreshCredits();
             } catch (error) {
                 if (cancelled) return;
                 console.error('Failed to confirm payment', error);
@@ -64,7 +87,7 @@ const PaymentSuccessPage = () => {
         return () => {
             cancelled = true;
         };
-    }, [details, userId]);
+    }, [details, userId, refreshCredits]);
 
     const renderStatusIcon = () => {
         if (status === 'pending') {
@@ -78,7 +101,7 @@ const PaymentSuccessPage = () => {
         return <AlertTriangle className="w-24 h-24 text-destructive mx-auto" />;
     };
 
-    const headline = status === 'success' ? 'Payment Confirmed!' : status === 'pending' ? 'Confirming your payment¡­' : 'We could not confirm the payment';
+    const headline = status === 'success' ? 'Payment Confirmed!' : status === 'pending' ? 'Confirming your payment' : 'We could not confirm the payment';
 
   return (
     <div className="min-h-screen flex items-center justify-center py-20 px-4 sm:px-6 lg:px-8 bg-background text-foreground">

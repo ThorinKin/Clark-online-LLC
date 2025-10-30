@@ -48,11 +48,15 @@ const CartPage = () => {
         try {
             const collect = await loadCollectCheckoutScript();
 
+            const origin = window.location.origin;
+            const successUrl = new URL('/payment-success', origin);
+            successUrl.searchParams.set('t', '(TRANSACTION_ID)');
+
             const response = await requestWithFetch('/api/orders', {
                 payload: {
                     items: lineItems,
-                    successUrl: `${window.location.origin}/payment-success`,
-                    cancelUrl: `${window.location.origin}/payment-failed`,
+                    successUrl: successUrl.toString(),
+                    cancelUrl: new URL('/payment-failed', origin).toString(),
                 },
                 headers: { 'X-User-Id': userId },
             });
@@ -229,7 +233,7 @@ const CartPage = () => {
                 disabled={isProcessing}
                 onClick={handleCheckout}
             >
-                {isProcessing ? 'Redirecting¡­' : 'Checkout'}
+                {isProcessing ? 'Redirecting' : 'Checkout'}
                 <ArrowRight className="ml-2 w-5 h-5" />
             </Button>
 
