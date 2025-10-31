@@ -1,5 +1,5 @@
 // Login_react/src/lib/loadCollectCheckout.js
-const DEFAULT_SCRIPT_SRC = import.meta.env.VITE_NMI_COLLECT_SRC ?? 'https://secure.nmi.com/js/collect.js';
+const DEFAULT_SCRIPT_SRC = import.meta.env.VITE_NMI_COLLECT_SRC ?? 'https://emscorporate.transactiongateway.com/token/CollectCheckout.js';
 const SCRIPT_ID = 'nmi-collect-checkout';
 
 function configureCollectInstance(instance) {
