@@ -7,33 +7,27 @@ import { Trash2, Plus, Minus, ShoppingBag, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { requestWithFetch } from '@/service/fetch';
 import { toast } from '@/components/ui/use-toast';
 import { loadCollectCheckoutScript } from '@/lib/loadCollectCheckout';
 
 const CartPage = () => {
-  const { cartItems, removeFromCart, updateQuantity, getTotalPrice, getTotalItems } = useCart();
+    const { cartItems, removeFromCart, updateQuantity, getTotalPrice, getTotalItems } = useCart();
     const { isAuthenticated, userId } = useAuth();
     const navigate = useNavigate();
     const [isProcessing, setIsProcessing] = useState(false);
-
-    const lineItems = useMemo(
+    const nmiPublicKey = import.meta.env.VITE_NMI_PUBLIC_KEY?.trim();
+    const successUrlTemplate = import.meta.env.VITE_NMI_SUCCESS_URL?.trim();
+    const cancelUrlTemplate = import.meta.env.VITE_NMI_CANCEL_URL?.trim();
+    const collectLineItems = useMemo(
         () =>
-            cartItems.map(item => ({
-                id: item.id,
-                name: item.name,
-                nmiSku: item.nmiSku,
-                quantity: item.quantity,
-                unitAmount: item.price,
-                currency: item.currency,
-                credits: item.credits,
-            })),
+            cartItems
+                .filter(item => Boolean(item.nmiSku))
+                .map(item => ({ sku: item.nmiSku, quantity: item.quantity })),
         [cartItems]
     );
 
     const handleCheckout = useCallback(async () => {
         if (!cartItems.length || isProcessing) return;
-
         if (!isAuthenticated || !userId) {
             toast({
                 title: 'Login required',
@@ -44,36 +38,81 @@ const CartPage = () => {
             return;
         }
 
+        if (collectLineItems.length !== cartItems.length) {
+            toast({
+                title: 'Checkout unavailable',
+                description: 'One or more products are missing billing configuration. Please contact support.',
+                variant: 'destructive',
+            });
+            return;
+        }
+
+        if (!nmiPublicKey) {
+            toast({
+                title: 'Checkout unavailable',
+                description: 'Collect Checkout public key is not configured. Please contact support.',
+                variant: 'destructive',
+            });
+            return;
+        }
+
+        const ensureHttpsUrl = (configuredValue, fallbackPath) => {
+            const candidate = (configuredValue && configuredValue.trim()) || `${window.location.origin}${fallbackPath}`;
+            try {
+                const url = new URL(candidate);
+                if (url.protocol !== 'https:') {
+                    throw new Error(`Checkout URL must use HTTPS: ${candidate}`);
+                }
+                return url.href.replace(/[?&]$/, '');
+            } catch (error) {
+                throw new Error(`Invalid checkout URL: ${candidate}`);
+            }
+        };
+
+        const buildSuccessUrl = () => {
+            const base = ensureHttpsUrl(successUrlTemplate, '/payment-success');
+            if (base.includes('(TRANSACTION_ID)')) {
+                return base;
+            }
+
+            const hasQuery = base.includes('?');
+            const normalized = hasQuery && (base.endsWith('?') || base.endsWith('&')) ? base.slice(0, -1) : base;
+            return `${normalized}${hasQuery ? '&' : '?'}t=(TRANSACTION_ID)`;
+        };
+
+        let successUrl;
+        let cancelUrl;
+
+        try {
+            successUrl = buildSuccessUrl();
+            cancelUrl = ensureHttpsUrl(cancelUrlTemplate, '/payment-failed');
+        } catch (error) {
+            toast({
+                title: 'Checkout unavailable',
+                description: error.message,
+                variant: 'destructive',
+            });
+            return;
+        }
+
         setIsProcessing(true);
         try {
             const collect = await loadCollectCheckoutScript();
 
-            const origin = window.location.origin;
-            const successUrl = new URL('/payment-success', origin);
-            successUrl.searchParams.set('t', '(TRANSACTION_ID)');
+            if (!collect?.redirectToCheckout) {
+                throw new Error('Collect Checkout script is unavailable.');
+            }
 
-            const response = await requestWithFetch('/api/orders', {
-                payload: {
-                    items: lineItems,
-                    successUrl: successUrl.toString(),
-                    cancelUrl: new URL('/payment-failed', origin).toString(),
-                },
-                headers: { 'X-User-Id': userId },
+            if (typeof collect.configure === 'function') {
+                collect.configure({ key: nmiPublicKey, publicApiKey: nmiPublicKey });
+            }
+
+            await collect.redirectToCheckout({
+                key: nmiPublicKey,
+                lineItems: collectLineItems,
+                successUrl,
+                cancelUrl,
             });
-
-            const { checkoutId, checkoutUrl } = response;
-
-            if (collect?.redirectToCheckout && checkoutId) {
-                await collect.redirectToCheckout({ checkoutId });
-                return;
-            }
-
-            if (checkoutUrl) {
-                window.location.href = checkoutUrl;
-                return;
-            }
-
-            throw new Error('Missing Collect Checkout redirect information.');
         } catch (error) {
             console.error('Checkout error', error);
             toast({
@@ -84,32 +123,44 @@ const CartPage = () => {
         } finally {
             setIsProcessing(false);
         }
-    }, [cartItems.length, isProcessing, isAuthenticated, userId, navigate, lineItems]);
+    }, [
+        cartItems.length,
+        isProcessing,
+        isAuthenticated,
+        userId,
+        navigate,
+        collectLineItems,
+        toast,
+        nmiPublicKey,
+        successUrlTemplate,
+        cancelUrlTemplate,
+    ]);
 
-  if (cartItems.length === 0) {
-    return (
-      <div className="min-h-screen py-20 px-4 sm:px-6 lg:px-8 bg-background text-foreground">
-        <Helmet>
-          <title>Shopping Cart - TTXS Technology</title>
-          <meta name="description" content="Review your selected AI service packages and proceed to checkout." />
-        </Helmet>
+    if (cartItems.length === 0) {
+        return (
+            <div className="min-h-screen py-20 px-4 sm:px-6 lg:px-8 bg-background text-foreground">
+                <Helmet>
+                    <title>Shopping Cart - TTXS Technology</title>
+                    <meta name="description" content="Review your selected AI service packages and proceed to checkout." />
+                </Helmet>
 
-        <div className="max-w-4xl mx-auto text-center">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-            className="space-y-8"
-          >
-            <ShoppingBag className="w-24 h-24 text-muted-foreground mx-auto" />
-            <h1 className="text-4xl font-bold text-foreground">Your cart is empty</h1>
-            <p className="text-xl text-muted-foreground">
-              Looks like you haven't added any AI service packages yet.
-            </p>
-            <Link to="/products">
-              <Button size="lg" className="bg-primary text-primary-foreground hover:bg-primary/90 px-8 py-4">
-                Browse Packages
-                <ArrowRight className="ml-2 w-5 h-5" />
+                <div className="max-w-4xl mx-auto text-center">
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.8 }}
+                        className="space-y-8"
+                    >
+                        <ShoppingBag className="w-24 h-24 text-muted-foreground mx-auto" />
+                        <h1 className="text-4xl font-bold text-foreground">Your cart is empty</h1>
+                        <p className="text-xl text-muted-foreground">
+                            Looks like you haven't added any AI service packages yet.
+                        </p>
+                        <Link to="/products">
+                            <Button size="lg" className="bg-primary text-primary-foreground hover:bg-primary/90 px-8 py-4">
+                                Browse Packages
+                                <ArrowRight className="ml-2 w-5 h-5" />
+
               </Button>
             </Link>
           </motion.div>

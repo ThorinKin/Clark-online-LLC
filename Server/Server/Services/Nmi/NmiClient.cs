@@ -63,20 +63,17 @@ public class NmiClient : INmiClient
 
         var payload = new
         {
-            amount = request.Amount,
-            currency = request.Currency,
-            success_url = request.SuccessUrl,
-            cancel_url = request.CancelUrl,
-            line_items = request.Items.Select(item => new
+            successUrl = request.SuccessUrl,
+            cancelUrl = request.CancelUrl,
+            lineItems = request.Items.Select(item => new
             {
-                sku = item.Sku,
-                quantity = item.Quantity,
-                unit_amount = item.UnitAmount
+                item.Sku,
+                item.Quantity
             }),
             metadata = new
             {
-                order_id = request.OrderId,
-                order_number = request.OrderNumber
+                orderId = request.OrderId,
+                orderNumber = request.OrderNumber
             }
         };
 

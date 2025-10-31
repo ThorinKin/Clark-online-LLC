@@ -4,13 +4,18 @@ const SCRIPT_ID = 'nmi-collect-checkout';
 
 function configureCollectInstance(instance) {
     const publicKey = import.meta.env.VITE_NMI_PUBLIC_KEY;
-    if (!instance || typeof instance.configure !== 'function' || !publicKey) {
+    if (!instance || typeof instance.configure !== 'function') {
+        return instance;
+    }
+
+    if (!publicKey) {
+        console.error('VITE_NMI_PUBLIC_KEY is not configured.');
         return instance;
     }
 
     if (!window.__collectCheckoutConfigured) {
         try {
-            instance.configure({ publicApiKey: publicKey });
+            instance.configure({ key: publicKey, publicApiKey: publicKey });
             window.__collectCheckoutConfigured = true;
         } catch (error) {
             console.error('Failed to configure Collect Checkout', error);
