@@ -57,15 +57,16 @@ const CartPage = () => {
         }
 
         const ensureHttpsUrl = (configuredValue, fallbackPath) => {
-            const candidate = (configuredValue && configuredValue.trim()) || `${window.location.origin}${fallbackPath}`;
+            const raw = (configuredValue && configuredValue.trim()) || `${window.location.origin}${fallbackPath}`;
+            const trimmed = raw.trim();
             try {
-                const url = new URL(candidate);
+                const url = new URL(trimmed);
                 if (url.protocol !== 'https:') {
-                    throw new Error(`Checkout URL must use HTTPS: ${candidate}`);
+                    throw new Error(`Checkout URL must use HTTPS: ${trimmed}`);
                 }
-                return url.href.replace(/[?&]$/, '');
+                return trimmed.replace(/[?&]$/, '');
             } catch (error) {
-                throw new Error(`Invalid checkout URL: ${candidate}`);
+                throw new Error(`Invalid checkout URL: ${trimmed}`);
             }
         };
 

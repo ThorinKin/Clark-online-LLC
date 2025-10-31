@@ -3,7 +3,7 @@ const DEFAULT_SCRIPT_SRC = import.meta.env.VITE_NMI_COLLECT_SRC ?? 'https://emsc
 const SCRIPT_ID = 'nmi-collect-checkout';
 
 function configureCollectInstance(instance) {
-    const publicKey = import.meta.env.VITE_NMI_PUBLIC_KEY;
+    const publicKey = import.meta.env.VITE_NMI_PUBLIC_KEY?.trim();
     if (!instance || typeof instance.configure !== 'function') {
         return instance;
     }
@@ -12,7 +12,7 @@ function configureCollectInstance(instance) {
         console.error('VITE_NMI_PUBLIC_KEY is not configured.');
         return instance;
     }
-
+    
     if (!window.__collectCheckoutConfigured) {
         try {
             instance.configure({ key: publicKey, publicApiKey: publicKey });
