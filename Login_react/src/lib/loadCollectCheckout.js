@@ -1,20 +1,23 @@
 // Login_react/src/lib/loadCollectCheckout.js
-const DEFAULT_SCRIPT_SRC = import.meta.env.VITE_NMI_COLLECT_SRC ?? 'https://emscorporate.transactiongateway.com/token/CollectCheckout.js';
+// 作用：动态加载 Collect Checkout 脚本并配置公钥；页面可直接调用 redirectToCheckout({ lineItems, successUrl, cancelUrl, key }).
+
+const DEFAULT_SCRIPT_SRC =
+    (import.meta.env.VITE_NMI_COLLECT_SRC && import.meta.env.VITE_NMI_COLLECT_SRC.trim()) ||
+    'https://emscorporate.transactiongateway.com/token/CollectCheckout.js'; 
+
 const SCRIPT_ID = 'nmi-collect-checkout';
 
 function configureCollectInstance(instance) {
     const publicKey = import.meta.env.VITE_NMI_PUBLIC_KEY?.trim();
-    if (!instance || typeof instance.configure !== 'function') {
-        return instance;
-    }
-
+    if (!instance || typeof instance.configure !== 'function') return instance;
     if (!publicKey) {
         console.error('VITE_NMI_PUBLIC_KEY is not configured.');
         return instance;
     }
-    
+
     if (!window.__collectCheckoutConfigured) {
         try {
+            // 兼容不同版本字段：有的叫 key，有的叫 publicApiKey
             instance.configure({ key: publicKey, publicApiKey: publicKey });
             window.__collectCheckoutConfigured = true;
         } catch (error) {
@@ -49,9 +52,7 @@ export function loadCollectCheckoutScript() {
             }
         };
 
-        const onError = () => {
-            reject(new Error('Failed to load Collect Checkout script'));
-        };
+        const onError = () => reject(new Error('Failed to load Collect Checkout script'));
 
         if (existing) {
             existing.addEventListener('load', onReady, { once: true });
@@ -63,9 +64,13 @@ export function loadCollectCheckoutScript() {
         script.src = DEFAULT_SCRIPT_SRC;
         script.async = true;
         script.id = SCRIPT_ID;
+
+        // 有些环境要求在 <script> 上携带 data-checkout-key
+        const publicKey = import.meta.env.VITE_NMI_PUBLIC_KEY?.trim();
+        if (publicKey) script.setAttribute('data-checkout-key', publicKey);
+
         script.onload = onReady;
         script.onerror = onError;
-
         document.body.appendChild(script);
     });
 }
