@@ -40,6 +40,7 @@ public class OrdersController : ControllerBase
         _nmiOptions = nmiOptions.Value;
     }
 
+    /// 方案一（弃用）：由服务器创建 NMI Checkout
     [HttpPost]
     public async Task<MessageModel<CreateOrderResponse>> CreateOrder([FromBody] CreateOrderRequest request, CancellationToken cancellationToken)
     {
@@ -141,6 +142,74 @@ public class OrdersController : ControllerBase
         };
 
         return MessageHelp.Success(responsePayload);
+    }
+
+    /// 方案二：仅在站内预创建订单（不调用 NMI），返回 GUID 供 success/cancel URL 使用。
+    /// 用于“前端 Collect Checkout 脚本直连创建购物车并跳转”的流程。
+    [HttpPost("pending")]
+    public async Task<MessageModel<CreateOrderResponse>> CreatePending([FromBody] PendingOrderRequest request, CancellationToken ct)
+    {
+        var userId = GetUserId();
+        if (userId is null)
+        {
+            return MessageHelp.Error<CreateOrderResponse>("Missing user identity", response: null, Code: 401);
+        }
+
+        if (request.Items is null || request.Items.Count == 0)
+        {
+            return MessageHelp.Error<CreateOrderResponse>("Cart is empty", response: null, Code: 400);
+        }
+
+        var userExists = await _context.Users.AnyAsync(u => u.Id == userId, ct);
+        if (!userExists)
+        {
+            return MessageHelp.Error<CreateOrderResponse>("User not found", response: null, Code: 404);
+        }
+
+        var currency = request.Items.Select(i => i.Currency ?? "USD").Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        if (currency.Count != 1)
+        {
+            return MessageHelp.Error<CreateOrderResponse>("All items must use the same currency", response: null, Code: 400);
+        }
+
+        var normalizedCurrency = (currency.FirstOrDefault() ?? "USD").ToUpperInvariant();
+
+        var order = new Order
+        {
+            UserId = userId,
+            Currency = normalizedCurrency,
+            Status = OrderStatus.AwaitingPayment,
+            CreatedAt = DateTimeOffset.UtcNow
+        };
+
+        foreach (var i in request.Items)
+        {
+            var q = i.Quantity <= 0 ? 1 : i.Quantity;
+            var amt = i.UnitAmount < 0 ? 0 : i.UnitAmount;
+
+            order.Items.Add(new OrderItem
+            {
+                ProductId = i.Id,
+                NmiSku = i.NmiSku,
+                Name = i.Name,
+                Quantity = q,
+                UnitAmount = amt,
+                Credits = i.Credits
+            });
+
+            order.TotalAmount += amt * q;
+            order.TotalCredits += i.Credits * q;
+        }
+
+        await _context.Orders.AddAsync(order, ct);
+        await _context.SaveChangesAsync(ct);
+
+        return MessageHelp.Success(new CreateOrderResponse
+        {
+            OrderId = order.Id,
+            OrderNumber = order.OrderNumber
+            // 不返回 CheckoutUrl；由前端脚本直连 NMI 并跳转
+        });
     }
 
     [HttpPost("{orderId:guid}/confirm")]
@@ -329,6 +398,8 @@ public class OrdersController : ControllerBase
     }
 }
 
+// DTOs
+
 public class CreateOrderRequest
 {
     [Required]
@@ -337,6 +408,13 @@ public class CreateOrderRequest
     [Required]
     public string CancelUrl { get; set; } = string.Empty;
 
+    public List<CreateOrderItemRequest> Items { get; set; } = new();
+}
+
+public class PendingOrderRequest
+{
+    // 仅用于预创建订单，不要求 Success/Cancel URL
+    [Required]
     public List<CreateOrderItemRequest> Items { get; set; } = new();
 }
 

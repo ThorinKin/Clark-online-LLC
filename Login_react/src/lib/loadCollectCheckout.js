@@ -1,15 +1,16 @@
 // Login_react/src/lib/loadCollectCheckout.js
-// 作用：动态加载 Collect Checkout 脚本并配置公钥；页面可直接调用 redirectToCheckout({ lineItems, successUrl, cancelUrl, key }).
+// 作用：动态加载 Collect Checkout 脚本并配置公钥；供页面调用 redirectToCheckout({ key, lineItems, successUrl, cancelUrl }).
 
 const DEFAULT_SCRIPT_SRC =
     (import.meta.env.VITE_NMI_COLLECT_SRC && import.meta.env.VITE_NMI_COLLECT_SRC.trim()) ||
-    'https://emscorporate.transactiongateway.com/token/CollectCheckout.js'; 
+    'https://emscorporate.transactiongateway.com/token/CollectCheckout.js';
 
 const SCRIPT_ID = 'nmi-collect-checkout';
 
 function configureCollectInstance(instance) {
     const publicKey = import.meta.env.VITE_NMI_PUBLIC_KEY?.trim();
     if (!instance || typeof instance.configure !== 'function') return instance;
+
     if (!publicKey) {
         console.error('VITE_NMI_PUBLIC_KEY is not configured.');
         return instance;
@@ -17,7 +18,7 @@ function configureCollectInstance(instance) {
 
     if (!window.__collectCheckoutConfigured) {
         try {
-            // 兼容不同版本字段：有的叫 key，有的叫 publicApiKey
+            // 兼容不同环境字段命名（有的叫 key，有的叫 publicApiKey）
             instance.configure({ key: publicKey, publicApiKey: publicKey });
             window.__collectCheckoutConfigured = true;
         } catch (error) {
@@ -33,6 +34,7 @@ export function loadCollectCheckoutScript() {
         return Promise.reject(new Error('Collect Checkout is only available in browser environments'));
     }
 
+    // 已加载直接返回
     if (window.CollectCheckout?.redirectToCheckout) {
         return Promise.resolve(configureCollectInstance(window.CollectCheckout));
     }
@@ -65,9 +67,11 @@ export function loadCollectCheckoutScript() {
         script.async = true;
         script.id = SCRIPT_ID;
 
-        // 有些环境要求在 <script> 上携带 data-checkout-key
+        // 某些环境要求在 <script> 上携带 data-checkout-key
         const publicKey = import.meta.env.VITE_NMI_PUBLIC_KEY?.trim();
-        if (publicKey) script.setAttribute('data-checkout-key', publicKey);
+        if (publicKey) {
+            script.setAttribute('data-checkout-key', publicKey);
+        }
 
         script.onload = onReady;
         script.onerror = onError;
