@@ -11,8 +11,6 @@ import { toast } from '@/components/ui/use-toast';
 import { requestWithFetch } from '@/service/fetch';
 import { loadCollectCheckoutScript } from '@/lib/loadCollectCheckout';
 
-const CART_API = import.meta.env.VITE_NMI_CART_API?.trim();
-
 const CartPage = () => {
     const { cartItems, removeFromCart, updateQuantity, getTotalPrice, getTotalItems } = useCart();
     const { isAuthenticated, userId } = useAuth();
@@ -99,95 +97,86 @@ const CartPage = () => {
     }
 
     const handleCheckout = useCallback(async () => {
-        if (!CART_API) {
-            toast({
-                title: 'Checkout unavailable',
-                description: 'Missing VITE_NMI_CART_API. Please set it in your .env',
-                variant: 'destructive',
-            });
-            return;
-        }
-        if (!cartItems.length || isProcessing) return;
+        if (isProcessing || !cartItems.length) return;
 
         if (!isAuthenticated || !userId) {
-            toast({ title: 'Login required', description: 'Please sign in before proceeding to checkout.', variant: 'destructive' });
+            toast({
+                title: 'Login required',
+                description: 'Please sign in before proceeding to checkout.',
+                variant: 'destructive'
+            });
             navigate('/auth');
             return;
         }
 
+        const PUBLIC_CHECKOUT_KEY = import.meta.env.VITE_NMI_PUBLIC_KEY?.trim();
         if (!PUBLIC_CHECKOUT_KEY) {
-            toast({ title: 'Checkout unavailable', description: 'Missing VITE_NMI_PUBLIC_KEY.', variant: 'destructive' });
+            toast({
+                title: 'Checkout unavailable',
+                description: 'Missing VITE_NMI_PUBLIC_KEY.',
+                variant: 'destructive'
+            });
             return;
         }
 
         if (collectLineItems.length !== cartItems.length) {
-            toast({ title: 'Checkout unavailable', description: 'One or more products are missing nmiSku.', variant: 'destructive' });
+            toast({
+                title: 'Checkout unavailable',
+                description: 'One or more products are missing nmiSku.',
+                variant: 'destructive'
+            });
             return;
         }
 
         setIsProcessing(true);
         try {
-            // 1) 生成 https 的回跳地址 + 挂上 orderId + 保留未编码的 (TRANSACTION_ID)
-            const sBase = ensureHttpsUrl(successUrlTemplate, '/payment-success');
-            const cBase = ensureHttpsUrl(cancelUrlTemplate, '/payment-failed');
+            // 1) Build HTTPS return URLs
+            const successBase = ensureHttpsUrl(successUrlTemplate, '/payment-success');
+            const cancelBase = ensureHttpsUrl(cancelUrlTemplate, '/payment-failed');
 
-            // 向后端登记待支付订单，拿 orderId 做幂等
+            // 2) Create a pending order on our server 
             const { orderId } = await createPendingOrder();
-            const successUrl = buildSuccessUrl(sBase + (sBase.includes('?') ? `&orderId=${orderId}` : `?orderId=${orderId}`));
-            const cancelUrl = cBase + (cBase.includes('?') ? `&orderId=${orderId}` : `?orderId=${orderId}`);
 
-            // 2) 优先直连 NMI REST 创建购物车
-            const res = await fetch(CART_API, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-                body: JSON.stringify({
-                    key: PUBLIC_CHECKOUT_KEY,           // checkout_public_*
-                    lineItems: collectLineItems,        // [{ sku, quantity }]
-                    successUrl,                         // 必须 https + (TRANSACTION_ID)
-                    cancelUrl
-                }),
-            });
+            // success URL must contain (TRANSACTION_ID); keep it UN-ENCODED
+            const successUrl = buildSuccessUrl(
+                successBase + (successBase.includes('?') ? `&orderId=${orderId}` : `?orderId=${orderId}`)
+            );
+            const cancelUrl =
+                cancelBase + (cancelBase.includes('?') ? `&orderId=${orderId}` : `?orderId=${orderId}`);
 
-            const data = await res.json().catch(() => ({}));
-            if (!res.ok) {
-                throw new Error(data?.message || data?.error || `Failed to create cart (${res.status}).`);
-            }
-
-            // 2.1 返回了跳转 URL：直接跳
-            const jump = data.url || data.checkoutUrl || data.redirectUrl || data.checkout_url;
-            if (jump && typeof jump === 'string') {
-                window.location.assign(jump);
-                return;
-            }
-
-            // 2.2 返回了 cart id：用 CollectCheckout 脚本兜底跳转
-            if (data?.id) {
-                const cc = await loadCollectCheckoutScript();
-                if (!cc?.redirectToCheckout) throw new Error('Collect Checkout script not ready.');
-                await cc.redirectToCheckout({ cartId: data.id, successUrl, cancelUrl });
-                return;
-            }
-
-            // 3) 双兜底：如果 REST 没给 URL/ID，再尝试 JS 直连创建
+            // 3) Pure JS flow: let Collect Checkout create the cart & redirect
             const cc = await loadCollectCheckoutScript();
-            if (!cc?.redirectToCheckout) throw new Error('Collect Checkout script not ready.');
+            if (!cc?.redirectToCheckout) {
+                throw new Error('Collect Checkout script not ready.');
+            }
+
             await cc.redirectToCheckout({
-                key: PUBLIC_CHECKOUT_KEY,
-                lineItems: collectLineItems,
-                successUrl,
-                cancelUrl,
+                key: PUBLIC_CHECKOUT_KEY,    // checkout_public_* 
+                lineItems: collectLineItems, // [{ sku, quantity }] strictly matching NMI SKUs
+                successUrl,                  // MUST be https & whitelisted; contains
+                cancelUrl
             });
-        } catch (error) {
-            console.error('Checkout error', error);
-            toast({ title: 'Checkout failed', description: error?.message ?? 'Unable to start checkout. Please try again.', variant: 'destructive' });
+        } catch (err) {
+            console.error('Checkout error', err);
+            toast({
+                title: 'Checkout failed',
+                description: err?.message ?? 'Unable to start checkout. Please try again.',
+                variant: 'destructive'
+            });
         } finally {
             setIsProcessing(false);
         }
     }, [
-        cartItems.length, isProcessing, isAuthenticated, userId, navigate, toast,
-        successUrlTemplate, cancelUrlTemplate, PUBLIC_CHECKOUT_KEY, collectLineItems, orderItems, CART_API
+        cartItems.length,
+        isProcessing,
+        isAuthenticated,
+        userId,
+        navigate,
+        toast,
+        successUrlTemplate,
+        cancelUrlTemplate,
+        collectLineItems
     ]);
-
 
     if (cartItems.length === 0) {
         return (
