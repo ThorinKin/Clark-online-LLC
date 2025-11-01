@@ -63,29 +63,21 @@ const CartPage = () => {
 
     // 在后台先创建待支付订单，拿到 orderId；回跳用它做幂等/对账
     const createPendingOrder = async () => {
-        const raw = await requestWithFetch('/api/orders/pending', {
+        const resp = await requestWithFetch('/api/orders/pending', {
             payload: { items: orderItems },
             headers: userId ? { 'X-User-Id': userId } : undefined,
         });
-        const { success, response, raw: body } = normalizeMessageModel(raw);
-        // 兜底把所有可能路径都试一遍
-        const orderId =
-            pick(response ?? {}, ['OrderId', 'id', 'orderId']) ??
-            pick(body ?? {}, ['Response.OrderId', 'OrderId', 'id', 'orderId']) ??
-            undefined;
 
-        const orderNumber =
-            pick(response ?? {}, ['OrderNumber', 'orderNumber']) ??
-            pick(body ?? {}, ['Response.OrderNumber', 'OrderNumber', 'orderNumber']) ??
-            undefined;
-
-        if (!success || !orderId) {
-            console.error('[pending-order] raw =', raw);
-            console.error('[pending-order] normalized =', { success, response, body });
+        // resp 就是 { OrderId, OrderNumber, ... }
+        const orderId = resp?.OrderId ?? resp?.orderId ?? resp?.id;
+        if (!orderId) {
+            console.error('pending-order response =', resp);
             throw new Error('Failed to create pending order.');
         }
-
-        return { orderId, orderNumber };
+        return {
+            orderId,
+            orderNumber: resp?.OrderNumber ?? resp?.orderNumber ?? null,
+        };
     };
 
     function pick(obj, paths) {
@@ -104,20 +96,6 @@ const CartPage = () => {
             if (ok) return cur;
         }
         return undefined;
-    }
-
-    function normalizeMessageModel(rawInput) {
-        // 先把可能的外层 { data: ... } 抽出来
-        const layer1 = rawInput?.data ?? rawInput ?? {};
-        // 有些会再包一层 { data: { Response, Success } }
-        const layer2 = layer1?.data ?? layer1;
-        // 取 Success/Response（大小写都兼容）
-        const success = Boolean(
-            pick(layer2, ['Success', 'success', 'ok', 'OK']) ?? false
-        );
-        const response =
-            pick(layer2, ['Response', 'response', 'data']) ?? null;
-        return { success, response, raw: layer2 };
     }
 
     const handleCheckout = useCallback(async () => {

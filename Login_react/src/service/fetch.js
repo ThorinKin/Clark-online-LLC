@@ -1,3 +1,4 @@
+// Login_react/src/service/fetch.js
 //import { stringifyQuery } from 'vue-router'
 import { getErrMsg, ServerError } from '@/service/Error'
 import { forEach, isArray } from 'lodash-es'
