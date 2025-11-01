@@ -104,19 +104,25 @@ public class WebhookController : ControllerBase
                 return Ok(MessageHelp.Success());
             }
 
-            order.TransactionId = transactionId;
-            order.Status = OrderStatus.Paid;
-            order.PaidAt = DateTimeOffset.UtcNow;
-            order.UpdatedAt = DateTimeOffset.UtcNow;
-            order.FailureReason = null;
-            await _context.SaveChangesAsync(cancellationToken);
-            await _creditService.AddAsync(order.UserId, order.TotalCredits, cancellationToken);
+            var affected = await _context.Database.ExecuteSqlInterpolatedAsync($@"
+                UPDATE Orders
+                SET Status = {(int)OrderStatus.Paid},
+                    TransactionId = {transactionId},
+                    PaidAt = {DateTimeOffset.UtcNow},
+                    UpdatedAt = {DateTimeOffset.UtcNow},
+                    FailureReason = {null}
+                WHERE Id = {order.Id} AND Status <> {(int)OrderStatus.Paid}",
+                cancellationToken);
+
+            if (affected == 1)
+            {
+                await _creditService.AddAsync(order.UserId, order.TotalCredits, cancellationToken);
+            }
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to process webhook for transaction {TransactionId}", transactionId);
         }
-
         return Ok(MessageHelp.Success());
     }
 

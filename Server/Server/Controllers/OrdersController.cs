@@ -271,20 +271,35 @@ public class OrdersController : ControllerBase
             return MessageHelp.Error<ConfirmOrderResponse>("Transaction not approved", response: null, Code: 409);
         }
 
-        order.TransactionId = request.TransactionId;
-        order.Status = OrderStatus.Paid;
-        order.PaidAt = DateTimeOffset.UtcNow;
-        order.UpdatedAt = DateTimeOffset.UtcNow;
-        order.FailureReason = null;
+        // 原子：只有当当前不是 Paid 时，才能把订单置为 Paid
+        var affected = await _context.Database.ExecuteSqlInterpolatedAsync($@"
+            UPDATE Orders
+            SET Status = {(int)OrderStatus.Paid},
+                TransactionId = {request.TransactionId},
+                PaidAt = {DateTimeOffset.UtcNow},
+                UpdatedAt = {DateTimeOffset.UtcNow},
+                FailureReason = {null}
+            WHERE Id = {order.Id} AND Status <> {(int)OrderStatus.Paid}",
+            cancellationToken);
 
-        await _context.SaveChangesAsync(cancellationToken);
-        await _creditService.AddAsync(order.UserId, order.TotalCredits, cancellationToken);
+        // 只有第一次命中的请求才发积分；第二次开始 affected=0，什么都不做
+        if (affected == 1)
+        {
+            await _creditService.AddAsync(order.UserId, order.TotalCredits, cancellationToken);
+            return MessageHelp.Success(new ConfirmOrderResponse
+            {
+                CreditsAwarded = order.TotalCredits,
+                Status = "confirmed"
+            });
+        }
 
+        // 已有人先处理过
         return MessageHelp.Success(new ConfirmOrderResponse
         {
             CreditsAwarded = order.TotalCredits,
-            Status = "confirmed"
+            Status = "already_confirmed"
         });
+
     }
 
     [HttpPost("{orderId:guid}/fail")]

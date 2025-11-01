@@ -42,57 +42,34 @@ function createFetchOptions(options) {
 }
 
 async function requestWithFetch(url, options) {
-  const fetchOpt = createFetchOptions(options)
+    const fetchOpt = createFetchOptions(options)
+    if (url.startsWith('/')) url = import.meta.env.VITE_API_SERVER + url
 
-  if (url.startsWith('/')) url = import.meta.env.VITE_API_SERVER + url
-  switch (fetchOpt.method) {
-    case 'GET': {
-      // 由业务自己保证 payload 可以被序列化到url
-      /** 请求参数 */
-      const queryStr = new URLSearchParams(options.payload)
-      // 确定请求参数不为空再执行拼接操作
-      if (queryStr) {
-        const haveSearch = url.includes('?')
-        if (haveSearch) {
-          url += '&'
-        } else {
-          url += '?'
-        }
-
-        url += queryStr
-      }
-      break
+    if (fetchOpt.method === 'GET' && options.payload) {
+        const qs = new URLSearchParams(options.payload)
+        if (qs.toString()) url += (url.includes('?') ? '&' : '?') + qs.toString()
     }
-    case 'POST': {
-      break
+
+    const res = await fetch(url, fetchOpt)
+
+    // 先拿文本，再尝试 parse JSON；避免 500 页导致的 JSON 解析异常
+    const text = await res.text()
+    let content
+    try {
+        content = text ? JSON.parse(text) : {}
+    } catch {
+        content = null
     }
-    default: {
-      throw new Error(`unknown request method: ${options.method}`)
+
+    if (res.ok && content) {
+        const { Success, Response, Code, Msg } = content
+        if (Success) return Response
+        throw new ServerError(Msg || 'Request failed', Code || res.status)
     }
-  }
 
-  debugger
-  const res = await fetch(url, fetchOpt)
-  if (res.status === 401) {
-    throw new ServerError('no auth', 401)
-  }
-
-  /** 统一做json解码，非json的请求出现之后再考虑适配 */
-  const content = await res.json()
-
-  if (res.ok) {
-    const { Success, Response, Code, Msg } = content
-
-    if (Success) {
-      return Response
-    } else {
-      throw new ServerError(Msg, Code)
-    }
-  } else {
-    const errMsg = getErrMsg(content)
-
-    throw new Error(errMsg)
-  }
+    // 非 JSON 的错误，直接把文本抛出去
+    const snippet = (text || '').slice(0, 400)
+    throw new Error(snippet || `HTTP ${res.status}`)
 }
 
 export { requestWithFetch }
